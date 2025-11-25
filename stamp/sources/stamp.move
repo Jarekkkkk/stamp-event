@@ -200,7 +200,12 @@ module stamp::stamp {
 
     // === Public Functions ===
 
-    public fun mint<T>(config: &mut Config, event_name: String, ctx: &mut TxContext): Stamp<T> {
+    public fun mint_to<T>(
+        config: &mut Config,
+        event_name: String,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
         config.assert_version();
 
         assert!(config.managers.contains(&ctx.sender()), ENotManager);
@@ -212,22 +217,129 @@ module stamp::stamp {
         stamp_name.append(b"#".to_ascii_string());
         stamp_name.append(event.mint_count.to_string().to_ascii());
 
-        Stamp {
+        let stamp = Stamp<T> {
             id: object::new(ctx),
             name: stamp_name,
             image_url: event.image_url,
             points: event.points,
             event: event_name,
             description: event.description,
-        }
+        };
+
+        transfer::transfer(stamp, recipient);
     }
+
     // === View Functions ===
 
-    // === Package Functions ===
+    // Config view functions
+    public fun get_supported_versions(config: &Config): vector<u64> {
+        config.versions.into_keys()
+    }
+
+    public fun get_managers(config: &Config): vector<address> {
+        config.managers.into_keys()
+    }
+
+    public fun is_manager(config: &Config, addr: address): bool {
+        config.managers.contains(&addr)
+    }
+
+    public fun get_registered_collections(config: &Config): vector<TypeName> {
+        let (keys, _) = config.registered_collections.into_keys_values();
+        keys
+    }
+
+    public fun get_collection_display_id(config: &Config, collection_type: TypeName): Option<ID> {
+        if (config.registered_collections.contains(&collection_type)) {
+            option::some(config.registered_collections[&collection_type])
+        } else {
+            option::none()
+        }
+    }
+
+    public fun is_collection_registered(config: &Config, collection_type: TypeName): bool {
+        config.registered_collections.contains(&collection_type)
+    }
+
+    public fun event_exists(config: &Config, event_name: String): bool {
+        config.events.contains(event_name)
+    }
+
+    // Event view functions
+    public fun get_event_name(config: &Config, event_name: String): Option<String> {
+        if (config.events.contains(event_name)) {
+            option::some(config.events[event_name].name)
+        } else {
+            option::none()
+        }
+    }
+
+    public fun get_event_description(config: &Config, event_name: String): Option<String> {
+        if (config.events.contains(event_name)) {
+            option::some(config.events[event_name].description)
+        } else {
+            option::none()
+        }
+    }
+
+    public fun get_event_mint_count(config: &Config, event_name: String): Option<u32> {
+        if (config.events.contains(event_name)) {
+            option::some(config.events[event_name].mint_count)
+        } else {
+            option::none()
+        }
+    }
+
+    public fun get_event_image_url(config: &Config, event_name: String): Option<String> {
+        if (config.events.contains(event_name)) {
+            option::some(config.events[event_name].image_url)
+        } else {
+            option::none()
+        }
+    }
+
+    public fun get_event_points(config: &Config, event_name: String): Option<u64> {
+        if (config.events.contains(event_name)) {
+            option::some(config.events[event_name].points)
+        } else {
+            option::none()
+        }
+    }
+
+    // Stamp view functions
+    public fun get_stamp_name<T>(stamp: &Stamp<T>): String {
+        stamp.name
+    }
+
+    public fun get_stamp_image_url<T>(stamp: &Stamp<T>): String {
+        stamp.image_url
+    }
+
+    public fun get_stamp_points<T>(stamp: &Stamp<T>): u64 {
+        stamp.points
+    }
+
+    public fun get_stamp_event<T>(stamp: &Stamp<T>): String {
+        stamp.event
+    }
+
+    public fun get_stamp_description<T>(stamp: &Stamp<T>): String {
+        stamp.description
+    }
+
+    public fun get_stamp_info<T>(stamp: &Stamp<T>): (String, String, u64, String, String) {
+        (stamp.name, stamp.image_url, stamp.points, stamp.event, stamp.description)
+    }
 
     // === Private Functions ===
     fun assert_version(config: &Config) {
         let v = PACKAGE_VERSION;
         assert!(config.versions.contains(&v), EInvalidPackageVersion);
+    }
+
+    // === Test Functions ===
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(STAMP {}, ctx);
     }
 }
