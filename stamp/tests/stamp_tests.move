@@ -41,7 +41,6 @@ module stamp::stamp_tests {
                 ascii::string(b"Test Event"),
                 ascii::string(b"A test event for unit testing"),
                 ascii::string(b"https://example.com/test-event.png"),
-                100,
             );
 
             ts::return_to_sender(&scenario, admin_cap);
@@ -100,7 +99,6 @@ module stamp::stamp_tests {
                 let mut comp = ascii::string(b"Test Event#");
                 comp.append((i + 1).to_string().to_ascii());
                 assert!(stamp.get_stamp_name() == comp, 0);
-                assert!(stamp.get_stamp_points() == 100, 1);
                 assert!(stamp.get_stamp_event() == ascii::string(b"Test Event"), 2);
                 assert!(
                     stamp.get_stamp_description() == ascii::string(b"A test event for unit testing"),
@@ -141,7 +139,6 @@ module stamp::stamp_tests {
                 ascii::string(b"Initial Event"),
                 ascii::string(b"Initial description"),
                 ascii::string(b"https://example.com/initial.png"),
-                50,
             );
 
             ts::return_to_sender(&scenario, admin_cap);
@@ -176,23 +173,6 @@ module stamp::stamp_tests {
                 &admin_cap,
                 ascii::string(b"Initial Event"),
                 ascii::string(b"https://example.com/updated.png"),
-            );
-
-            ts::return_to_sender(&scenario, admin_cap);
-            ts::return_shared(config);
-        };
-
-        // Update event points
-        ts::next_tx(&mut scenario, ADMIN);
-        {
-            let mut config = ts::take_shared<Config>(&scenario);
-            let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
-
-            stamp::update_event_points(
-                &mut config,
-                &admin_cap,
-                ascii::string(b"Initial Event"),
-                75,
             );
 
             ts::return_to_sender(&scenario, admin_cap);
@@ -242,7 +222,6 @@ module stamp::stamp_tests {
                 ascii::string(b"Duplicate Event"),
                 ascii::string(b"First event"),
                 ascii::string(b"https://example.com/first.png"),
-                100,
             );
 
             ts::return_to_sender(&scenario, admin_cap);
@@ -261,7 +240,6 @@ module stamp::stamp_tests {
                 ascii::string(b"Duplicate Event"),
                 ascii::string(b"Second event"),
                 ascii::string(b"https://example.com/second.png"),
-                200,
             );
 
             ts::return_to_sender(&scenario, admin_cap);
@@ -293,7 +271,6 @@ module stamp::stamp_tests {
                 ascii::string(b"Test Event"),
                 ascii::string(b"A test event"),
                 ascii::string(b"https://example.com/test.png"),
-                100,
             );
 
             ts::return_to_sender(&scenario, admin_cap);

@@ -33,7 +33,6 @@ module stamp::stamp {
         description: String,
         mint_count: u32,
         image_url: String,
-        points: u64,
     }
 
     public struct Config has key, store {
@@ -50,14 +49,30 @@ module stamp::stamp {
         id: UID,
         name: String,
         image_url: String,
-        points: u64,
         event: String,
         description: String,
     }
 
     // === Events ===
 
-    // === Method Aliases ===
+    public struct NewCollection has copy, drop {
+        collection_type: TypeName,
+        display_id: ID,
+        creator: address,
+    }
+
+    public struct NewEvent has copy, drop {
+        name: String,
+        description: String,
+        image_url: String,
+    }
+
+    public struct MintEvent<phantom Collection> has copy, drop {
+        stamp_id: ID,
+        event_name: String,
+        recipient: address,
+        mint_count: u32,
+    }
 
     // === Admin Functions ===
 
@@ -83,6 +98,14 @@ module stamp::stamp {
             events: table::new(ctx),
         };
         transfer::public_share_object(config);
+    }
+
+    public fun add_version(config: &mut Config, _cap: &AdminCap, version: u64) {
+        config.versions.insert(version);
+    }
+
+    public fun remove_version(config: &mut Config, _cap: &AdminCap, version: u64) {
+        config.versions.remove(&version);
     }
 
     #[allow(lint(self_transfer))]
@@ -122,7 +145,16 @@ module stamp::stamp {
         );
         stamp_display.update_version();
 
-        config.registered_collections.insert(collection_type, object::id(&stamp_display));
+        let display_id = object::id(&stamp_display);
+        config.registered_collections.insert(collection_type, display_id);
+
+        // Emit new collection event
+        sui::event::emit(NewCollection {
+            collection_type,
+            display_id,
+            creator: ctx.sender(),
+        });
+
         transfer::public_transfer(stamp_display, ctx.sender());
     }
 
@@ -132,7 +164,6 @@ module stamp::stamp {
         name: String,
         description: String,
         image_url: String,
-        points: u64,
     ) {
         config.assert_version();
 
@@ -143,10 +174,16 @@ module stamp::stamp {
             description,
             mint_count: 0,
             image_url,
-            points,
         };
 
         config.events.add(name, event);
+
+        // Emit new event
+        sui::event::emit(NewEvent {
+            name,
+            description,
+            image_url,
+        });
     }
 
     public fun update_event_name(
@@ -188,21 +225,9 @@ module stamp::stamp {
         (&mut config.events[name]).image_url = image_url;
     }
 
-    public fun update_event_points(
-        config: &mut Config,
-        _cap: &AdminCap,
-        name: String,
-        points: u64,
-    ) {
-        config.assert_version();
-        assert!(config.events.contains(name), EEventNotRegistered);
-
-        (&mut config.events[name]).points = points;
-    }
-
     // === Public Functions ===
 
-    public fun mint_to<T>(
+    public fun mint_to<Collection: drop>(
         config: &mut Config,
         event_name: String,
         recipient: address,
@@ -219,14 +244,21 @@ module stamp::stamp {
         stamp_name.append(b"#".to_ascii_string());
         stamp_name.append(event.mint_count.to_string().to_ascii());
 
-        let stamp = Stamp<T> {
+        let stamp = Stamp<Collection> {
             id: object::new(ctx),
             name: stamp_name,
             image_url: event.image_url,
-            points: event.points,
             event: event_name,
             description: event.description,
         };
+
+        // Emit mint event
+        sui::event::emit(MintEvent<Collection> {
+            stamp_id: object::id(&stamp),
+            event_name,
+            recipient,
+            mint_count: event.mint_count,
+        });
 
         transfer::transfer(stamp, recipient);
     }
@@ -300,14 +332,6 @@ module stamp::stamp {
         }
     }
 
-    public fun get_event_points(config: &Config, event_name: String): Option<u64> {
-        if (config.events.contains(event_name)) {
-            option::some(config.events[event_name].points)
-        } else {
-            option::none()
-        }
-    }
-
     // Stamp view functions
     public fun get_stamp_name<T>(stamp: &Stamp<T>): String {
         stamp.name
@@ -315,10 +339,6 @@ module stamp::stamp {
 
     public fun get_stamp_image_url<T>(stamp: &Stamp<T>): String {
         stamp.image_url
-    }
-
-    public fun get_stamp_points<T>(stamp: &Stamp<T>): u64 {
-        stamp.points
     }
 
     public fun get_stamp_event<T>(stamp: &Stamp<T>): String {
@@ -329,8 +349,8 @@ module stamp::stamp {
         stamp.description
     }
 
-    public fun get_stamp_info<T>(stamp: &Stamp<T>): (String, String, u64, String, String) {
-        (stamp.name, stamp.image_url, stamp.points, stamp.event, stamp.description)
+    public fun get_stamp_info<T>(stamp: &Stamp<T>): (String, String, String, String) {
+        (stamp.name, stamp.image_url, stamp.event, stamp.description)
     }
 
     // === Private Functions ===
