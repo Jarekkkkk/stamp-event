@@ -2,11 +2,11 @@
 
 `Mainnet`
 ### Stamp
-- **Package**: `0x216003813310bc2f18db14e4f4c229b031a64efc24e81263d7e76fca5c902485`
-- **UpgradeCap**: `0xe8475284356fbc89553b752a0505c1d9d28fd8e90abffa525ca3b9109f8f5e4e`
-- **Publisher**: `0xc59455006847502fc72ddb9ca55f63c2b9327d3e09556bdd6bf17d86ee0592ee`
-- **Config**: `0x05550d7ed3cfdf653b2f4cb4b84d0c28d976c8f214a36fa857345c8fb9e298e8`
-- **AdminCap**: `0xef348ed2a480030a9c7b23ce4b39872812ded1bf5d72f47a8dac956e6b10eee4`
+- **Package**: `0xf469c36f014c1cd531ed119425e341beeaa569615c144e65a52cf2d0613d4fcb`
+- **UpgradeCap**: `0x162e8837330935c317b0dd52c2ab829b0dca2060897a11e9a0fa6c238b9dfa86`
+- **Publisher**: `0xfca2f7ec19fa71acad6ea7fbc5301da7bcb614a58bc37d40d2f3f6cbe5cd8c98`
+- **Config**: `0x5e5705f3497757d8e120e51143e81dab8e58d24ff1ba9bcf1e4af6c4b756fb9f`
+- **AdminCap**: `0x535681c0cd88aea86ef321958c3dff33ea3aa3e5400ddd9f44fb57f214ed0f66`
 
 
 ### CollectionTypes
