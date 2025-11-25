@@ -92,6 +92,7 @@ module stamp::stamp {
         ctx: &mut TxContext,
     ) {
         config.assert_version();
+
         let collection_type = type_name::with_defining_ids<Collection>();
         assert!(
             !config.registered_collections.contains(&collection_type),
@@ -134,6 +135,7 @@ module stamp::stamp {
         points: u64,
     ) {
         config.assert_version();
+
         assert!(!config.events.contains(name), EDuplicateEventName);
 
         let event = Event {
