@@ -15,6 +15,7 @@ module stamp::stamp {
     const EEventAlreadyExists: u64 = 104;
     const ECollectionAlreadyRegistered: u64 = 105;
     const ENotManager: u64 = 106;
+    const ECollectionNotRegistered: u64 = 107;
 
     // === Constants ===
 
@@ -237,6 +238,11 @@ module stamp::stamp {
 
         assert!(config.managers.contains(&ctx.sender()), ENotManager);
         assert!(config.events.contains(event_name), EEventNotRegistered);
+        assert!(
+            config.registered_collections.contains(&type_name::with_defining_ids<Collection>()),
+            ECollectionNotRegistered,
+        );
+
         let event = &mut config.events[event_name];
         event.mint_count = event.mint_count + 1;
 
