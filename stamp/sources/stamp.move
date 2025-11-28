@@ -109,6 +109,14 @@ module stamp::stamp {
         config.versions.remove(&version);
     }
 
+    public fun add_manager(config: &mut Config, _cap: &AdminCap, manager: address) {
+        config.managers.insert(manager);
+    }
+
+    public fun remove_manager(config: &mut Config, _cap: &AdminCap, manager: address) {
+        config.managers.remove(&manager);
+    }
+
     #[allow(lint(self_transfer))]
     public fun new_collection<Collection: drop>(
         config: &mut Config,
