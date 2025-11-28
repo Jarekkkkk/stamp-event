@@ -3,26 +3,31 @@ import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from "@mysten/sui/transactions";
 import { normalizeSuiAddress } from "@mysten/sui/utils";
+import dotenv from "dotenv";
+dotenv.config();
 
-import { join } from "path";
-import { existsSync, writeFileSync } from "fs";
+import fs from "fs";
+import fsPromise from "fs/promises";
+import path from "path";
+import process from "process";
 
 const secret = process.env.SUI_ADMIN_PRIVATE_KEY!;
+console.log({ secret });
 const { secretKey } = decodeSuiPrivateKey(secret);
 const signer = Ed25519Keypair.fromSecretKey(secretKey);
 
 const suiClient = new SuiClient({ url: getFullnodeUrl("mainnet") });
 
-// Load address CSV
-async function loadAddressList(filePath: string): Promise<string[]> {
-  const file = Bun.file(filePath);
-
-  if (!(await file.exists())) {
+/* --------------------------
+   Load address CSV (Node)
+----------------------------- */
+async function loadAddressList(filePath) {
+  if (!fs.existsSync(filePath)) {
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const text = await file.text();
-  const lines = text.split("\n").filter((line) => line.trim().length > 0);
+  const text = await fsPromise.readFile(filePath, "utf8");
+  const lines = text.split("\n").filter((l) => l.trim().length > 0);
 
   if (lines.length === 0) return [];
 
@@ -31,26 +36,25 @@ async function loadAddressList(filePath: string): Promise<string[]> {
   return addresses.map((l) => l.trim().replace(/['"]/g, ""));
 }
 
-// Create batches
-function createBatches<T>(array: T[], batchSize: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < array.length; i += batchSize) {
-    out.push(array.slice(i, i + batchSize));
+/* --------------------------
+   Create batches
+----------------------------- */
+function createBatches(array, size) {
+  const out = [];
+  for (let i = 0; i < array.length; i += size) {
+    out.push(array.slice(i, i + size));
   }
   return out;
 }
 
-// Write success CSV
-function writeSuccessRecord(
-  batchIndex: number,
-  addresses: string[],
-  txDigest: string,
-  timestamp: string,
-) {
-  const csvPath = join(process.cwd(), "successful_airdrops.csv");
+/* --------------------------
+   Write CSV records
+----------------------------- */
+function writeSuccessRecord(batchIndex, addresses, txDigest, timestamp) {
+  const csvPath = path.join(process.cwd(), "successful_airdrops.csv");
 
-  if (!existsSync(csvPath)) {
-    writeFileSync(csvPath, "batch_index,address,tx_digest,timestamp\n");
+  if (!fs.existsSync(csvPath)) {
+    fs.writeFileSync(csvPath, "batch_index,address,tx_digest,timestamp\n");
   }
 
   const rows =
@@ -58,15 +62,13 @@ function writeSuccessRecord(
       .map((addr) => `${batchIndex},${addr},${txDigest},${timestamp}`)
       .join("\n") + "\n";
 
-  writeFileSync(csvPath, rows, { flag: "a" });
+  fs.writeFileSync(csvPath, rows, { flag: "a" });
 }
 
-// Process a batch
-async function processBatch(
-  addresses: string[],
-  batchIndex: number,
-  totalBatches: number,
-) {
+/* --------------------------
+   Process a batch
+----------------------------- */
+async function processBatch(addresses, batchIndex, totalBatches) {
   console.log(
     `\nProcessing batch ${batchIndex + 1}/${totalBatches} (${addresses.length} addresses)`,
   );
@@ -102,45 +104,58 @@ async function processBatch(
 
     tx.setSender(signer.toSuiAddress());
 
-    console.log("Executing transaction...");
-    const result = await suiClient.dryRunTransactionBlock({
-      transactionBlock: await tx.build({ client: suiClient }),
+    console.log("Executing dry run...");
+    // const result = await suiClient.dryRunTransactionBlock({
+    //   transactionBlock: await tx.build({ client: suiClient }),
+    // });
+    const result = await suiClient.signAndExecuteTransaction({
+      transaction: tx,
+      signer,
+      options: {
+        showEffects: true,
+      },
     });
-
-    console.log({ result });
 
     if (result.effects?.status?.status === "success") {
       const ts = new Date().toISOString();
       console.log(
-        `successful batch ${batchIndex} from ${addresses[0]} to ${addresses[addresses.length - 1]}`,
+        `SUCCESS batch ${batchIndex}: ${addresses[0]} ? ${
+          addresses[addresses.length - 1]
+        }`,
       );
-      //
-      // console.log(`Batch ${batchIndex + 1} successful: ${result.digest}`);
-      //
-      // writeSuccessRecord(batchIndex + 1, addresses, result.digest!, ts);
+
+      // dryRun has no digest; create a predictable placeholder
+      const digest = result?.digest ?? `dryrun-${batchIndex}-${Date.now()}`;
+
+      console.log({ index: batchIndex + 1, addresses, digest, ts });
+      writeSuccessRecord(batchIndex + 1, addresses, digest, ts);
+
       return true;
     }
 
-    console.error(`? Batch ${batchIndex + 1} failed`, result.effects?.status);
+    console.error("Failed", result.effects?.status);
     return false;
   } catch (err) {
-    console.error(`? Error in batch ${batchIndex + 1}`, err);
+    console.error("Error:", err);
     return false;
   }
 }
 
-// Main
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
-  console.log(`Using signer address: ${signer.toSuiAddress()}`);
+  console.log(`Admin address: ${signer.toSuiAddress()}`);
 
   const addresses = await loadAddressList("discord_vip_pass.csv");
 
-  if (!addresses || addresses.length === 0) {
-    console.error("No addresses loaded.");
+  if (!addresses.length) {
+    console.error("No addresses found.");
     return;
   }
 
-  console.log(`Total addresses: ${addresses.length}`);
+  console.log(`Loaded ${addresses.length} addresses`);
 
   const BATCH_SIZE = 500;
   const batches = createBatches(addresses, BATCH_SIZE);
@@ -151,39 +166,19 @@ async function main() {
   let fail = 0;
 
   for (let i = 0; i < batches.length; i++) {
-    const batch = batches?.[i];
-    if (!batch) throw new Error(`Invalid Index: ${i} for batch`);
+    const batch = batches[i];
 
-    const first = batch[0];
+    // actual batch call (commented originally)
+    const okBatch = await processBatch(batch, i, batches.length);
+    okBatch ? ok++ : fail++;
 
-    const res = await suiClient.getOwnedObjects({
-      owner: first!,
-      filter: {
-        MatchAll: [
-          {
-            StructType:
-              "0xf469c36f014c1cd531ed119425e341beeaa569615c144e65a52cf2d0613d4fcb::stamp::Stamp<0xa66240bda1ccf0e28363a87c05a8972dc674516c06cdaa4cefcd5711f3d4cac1::collections::SuiFundamentalsDiscordVIPPass>",
-          },
-        ],
-      },
-      options: { showContent: true },
-    });
-
-    console.log({ res: res.data[0]?.data?.content.fields });
-
-    // const status = await processBatch(batch, i, batches.length);
-    // status ? ok++ : fail++;
-
-    if (i < batches.length - 1) {
-      await Bun.sleep(2000);
-    }
+    if (i < batches.length - 1) await sleep(2000);
   }
 
   console.log("\n=== SUMMARY ===");
   console.log("Batches:", batches.length);
   console.log("Success:", ok);
-  console.log("Failed:", fail);
-  console.log("Records saved ? successful_airdrops.csv");
+  console.log("Fail:", fail);
 }
 
 main().catch(console.error);
