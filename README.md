@@ -1,3 +1,14 @@
+# Sui Next.js dApp
+
+A Next.js application with Sui SDK and dApp Kit integration.
+
+## Getting Started
+
+1. Install dependencies:
+```bash
+npm install
+# or
+yarn install
 # stamp-event
 
 `Mainnet`
@@ -11,3 +22,12 @@
 
 ### CollectionTypes
 - **SuiFundamentalsDiscordVIPPass**: `0xa66240bda1ccf0e28363a87c05a8972dc674516c06cdaa4cefcd5711f3d4cac1::collections::SuiFundamentalsDiscordVIPPass`
+
+## Usage Examples
+
+### Single Mint
+Mint a single stamp to a specific address:
+
+```
+sh batch_mint.sh "discord_vip_pass.csv" 0xa66240bda1ccf0e28363a87c05a8972dc674516c06cdaa4cefcd5711f3d4cac1::collections::SuiFundamentalsDiscordVIPPass "Sui Fundamentals Discord VIP Pass"
+```
