@@ -9,15 +9,13 @@ const queryClient = new QueryClient();
 
 // Configure Sui network
 const networks = {
-  devnet: { url: getFullnodeUrl("devnet") },
-  testnet: { url: getFullnodeUrl("testnet") },
   mainnet: { url: getFullnodeUrl("mainnet") },
 };
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networks} defaultNetwork="devnet">
+      <SuiClientProvider networks={networks} defaultNetwork="mainnet">
         <WalletProvider autoConnect>
           <Component {...pageProps} />
         </WalletProvider>

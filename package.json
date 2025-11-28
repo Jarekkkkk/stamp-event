@@ -14,11 +14,14 @@
     "@mysten/sui.js": "^0.54.0",
     "@tanstack/react-query": "^5.0.0",
     "next": "14.0.0",
+    "papaparse": "^5.5.3",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/papaparse": "^5.5.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "eslint": "^8.0.0",
