@@ -277,6 +277,17 @@ module stamp::stamp {
         transfer::transfer(stamp, recipient);
     }
 
+    public fun batch_mint<Collection: drop>(
+        config: &mut Config,
+        event_name: String,
+        recipients: vector<address>,
+        ctx: &mut TxContext,
+    ) {
+        config.assert_version();
+
+        recipients.do!(|recipient| mint_to<Collection>(config, event_name, recipient, ctx));
+    }
+
     // === View Functions ===
 
     // Config view functions
