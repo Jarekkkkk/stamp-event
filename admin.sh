@@ -1,5 +1,5 @@
 #!/bin/bash
-PACKAGE="0xf469c36f014c1cd531ed119425e341beeaa569615c144e65a52cf2d0613d4fcb"
+PACKAGE="0xa756aab886e6f67446af31ca1779b0d6f8de96e14065006f697a5d43d1dadf95"
 CONFIG="0x5e5705f3497757d8e120e51143e81dab8e58d24ff1ba9bcf1e4af6c4b756fb9f"
 ADMIN_CAP="0x535681c0cd88aea86ef321958c3dff33ea3aa3e5400ddd9f44fb57f214ed0f66"
 PUBLISHER="0xfca2f7ec19fa71acad6ea7fbc5301da7bcb614a58bc37d40d2f3f6cbe5cd8c98"
@@ -29,6 +29,26 @@ case "$COMMAND" in
       --module stamp \
       --function new_event \
       --args "$CONFIG" "$ADMIN_CAP" "$EVENT_NAME" "$EVENT_DESCRIPTION" "$IMAGE_URL"
+    ;;
+
+  # add_manager
+  add_manager)
+    MANAGER=$1
+    sui client call \
+      --package "$PACKAGE" \
+      --module stamp \
+      --function add_manager \
+      --args "$CONFIG" "$ADMIN_CAP" "$MANAGER"
+    ;;
+
+  # remove_manager
+  remove_manager)
+    MANAGER=$1
+    sui client call \
+      --package "$PACKAGE" \
+      --module stamp \
+      --function remove_manager \
+      --args "$CONFIG" "$ADMIN_CAP" "$MANAGER"
     ;;
 
   # mint_to
